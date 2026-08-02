@@ -95,7 +95,7 @@ hr{border:0;border-top:1px solid var(--border);margin:20px 0}
 <script>
 const LS_KEY='bks_mastered',LS_SET='bks_settings';
 let topics=[],activeQuestions=[],currentIndex=0,score=0,answered=false,selectedTopic='',currentStreak={},questionStart=0,currentCorrectLetter='';
-​
+
 function registerTopic(name,questions){topics.push({name,questions});}
 function getMastered(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];}}
 function setMastered(ids){localStorage.setItem(LS_KEY,JSON.stringify(ids));}
@@ -108,7 +108,7 @@ function applySettings(){const theme=document.querySelector('input[name="theme"]
 function toggleSettings(){document.getElementById('settingsPanel').classList.toggle('show');}
 function closeSettings(){document.getElementById('settingsPanel').classList.remove('show');}
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-​
+
 function shuffleOptions(options){
   const arr=[];
   const letters=['A','B','C','D','E'];
@@ -120,7 +120,7 @@ function shuffleOptions(options){
   for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
   return arr;
 }
-​
+
 function toggleTopicSelection(div,checked){if(checked)div.classList.add('selected');else div.classList.remove('selected');}
 function selectAllTopics(){document.querySelectorAll('.topic-item input').forEach(cb=>{cb.checked=true;toggleTopicSelection(cb.parentElement,true);});}
 function clearTopicSelection(){document.querySelectorAll('.topic-item input').forEach(cb=>{cb.checked=false;toggleTopicSelection(cb.parentElement,false);});}
@@ -144,7 +144,7 @@ function initStart(){
   const studyBtn=document.createElement('button');studyBtn.className='btn btn-primary';studyBtn.textContent='Seçili Konuları Çalış';studyBtn.onclick=startSelectedQuiz;container.appendChild(studyBtn);
   const allBtn=document.createElement('button');allBtn.className='btn btn-secondary';allBtn.textContent='Tüm Dersler/Konular';allBtn.onclick=()=>startQuiz('all');container.appendChild(allBtn);
 }
-​
+
 async function loadFolder(){
   if(!window.showDirectoryPicker){alert('Tarayıcınız klasör seçmeyi desteklemiyor. Lütfen Chrome/Edge kullanın.');return;}
   try{
@@ -166,7 +166,7 @@ async function loadFolder(){
     alert(entries.length+' ders/konu yüklendi.');
   }catch(e){console.error(e);alert('Klasör yüklenemedi: '+e.message);}
 }
-​
+
 function startQuiz(topic){
   const mastered=getMastered();
   let pool=[],topicName='';
@@ -274,16 +274,15 @@ function loadTopicScript(filename){
     document.head.appendChild(script);
   });
 }
-​
+
 async function autoLoadTopics(){
   for(let i=1;i<=20;i++)await loadTopicScript(i+'.js');
   initStart();
 }
-​
+
 loadSettings();
 initAudioUnlock();
 autoLoadTopics();
 </script>
 </body>
 </html>
-​
