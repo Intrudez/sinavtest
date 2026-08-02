@@ -59,6 +59,10 @@ hr{border:0;border-top:1px solid var(--border);margin:20px 0}
       <label><input type="radio" name="threshold" value="2"> 2 doğru cevap</label>
       <label><input type="radio" name="threshold" value="3"> 3 doğru cevap</label>
       <hr>
+      <div><strong>Doğru cevap videosu</strong></div>
+      <label><input type="radio" name="correctVideo" value="on"> Açık</label>
+      <label><input type="radio" name="correctVideo" value="off"> Kapalı</label>
+      <hr>
       <button class="btn btn-primary" onclick="applySettings()" style="margin-top:10px">Uygula</button>
       <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top:5px">İptal</button>
     </div>
@@ -91,20 +95,20 @@ hr{border:0;border-top:1px solid var(--border);margin:20px 0}
 <script>
 const LS_KEY='bks_mastered',LS_SET='bks_settings';
 let topics=[],activeQuestions=[],currentIndex=0,score=0,answered=false,selectedTopic='',currentStreak={},questionStart=0,currentCorrectLetter='';
-
+​
 function registerTopic(name,questions){topics.push({name,questions});}
 function getMastered(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];}}
 function setMastered(ids){localStorage.setItem(LS_KEY,JSON.stringify(ids));}
 function resetMastered(){localStorage.removeItem(LS_KEY);updateMasteredInfo();alert('Öğrenilen sorular sıfırlandı.');}
 function updateMasteredInfo(){const m=getMastered();document.getElementById('masteredInfo').textContent='Öğrenilen (gizlenen): '+m.length+' soru';}
-function getSettings(){try{return JSON.parse(localStorage.getItem(LS_SET))||{theme:'dark',threshold:'2'};}catch(e){return {theme:'dark',threshold:'2'};}}
+function getSettings(){const defaults={theme:'dark',threshold:'2',correctVideo:'off'};try{return {...defaults,...(JSON.parse(localStorage.getItem(LS_SET))||{})};}catch(e){return defaults;}}
 function applyTheme(theme){document.documentElement.setAttribute('data-theme',theme);}
-function loadSettings(){const s=getSettings();document.querySelector('input[name="theme"][value="'+s.theme+'"]').checked=true;document.querySelector('input[name="threshold"][value="'+s.threshold+'"]').checked=true;applyTheme(s.theme);}
-function applySettings(){const theme=document.querySelector('input[name="theme"]:checked').value;const threshold=document.querySelector('input[name="threshold"]:checked').value;localStorage.setItem(LS_SET,JSON.stringify({theme,threshold}));applyTheme(theme);closeSettings();updateMasteredInfo();}
+function loadSettings(){const s=getSettings();document.querySelector('input[name="theme"][value="'+s.theme+'"]').checked=true;document.querySelector('input[name="threshold"][value="'+s.threshold+'"]').checked=true;document.querySelector('input[name="correctVideo"][value="'+s.correctVideo+'"]').checked=true;applyTheme(s.theme);}
+function applySettings(){const theme=document.querySelector('input[name="theme"]:checked').value;const threshold=document.querySelector('input[name="threshold"]:checked').value;const correctVideo=document.querySelector('input[name="correctVideo"]:checked').value;localStorage.setItem(LS_SET,JSON.stringify({theme,threshold,correctVideo}));applyTheme(theme);if(correctVideo==='off'){const vid=document.getElementById('correctVideo');vid.classList.remove('playing');vid.pause();}closeSettings();updateMasteredInfo();}
 function toggleSettings(){document.getElementById('settingsPanel').classList.toggle('show');}
 function closeSettings(){document.getElementById('settingsPanel').classList.remove('show');}
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-
+​
 function shuffleOptions(options){
   const arr=[];
   const letters=['A','B','C','D','E'];
@@ -116,7 +120,7 @@ function shuffleOptions(options){
   for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
   return arr;
 }
-
+​
 function toggleTopicSelection(div,checked){if(checked)div.classList.add('selected');else div.classList.remove('selected');}
 function selectAllTopics(){document.querySelectorAll('.topic-item input').forEach(cb=>{cb.checked=true;toggleTopicSelection(cb.parentElement,true);});}
 function clearTopicSelection(){document.querySelectorAll('.topic-item input').forEach(cb=>{cb.checked=false;toggleTopicSelection(cb.parentElement,false);});}
@@ -140,7 +144,7 @@ function initStart(){
   const studyBtn=document.createElement('button');studyBtn.className='btn btn-primary';studyBtn.textContent='Seçili Konuları Çalış';studyBtn.onclick=startSelectedQuiz;container.appendChild(studyBtn);
   const allBtn=document.createElement('button');allBtn.className='btn btn-secondary';allBtn.textContent='Tüm Dersler/Konular';allBtn.onclick=()=>startQuiz('all');container.appendChild(allBtn);
 }
-
+​
 async function loadFolder(){
   if(!window.showDirectoryPicker){alert('Tarayıcınız klasör seçmeyi desteklemiyor. Lütfen Chrome/Edge kullanın.');return;}
   try{
@@ -162,7 +166,7 @@ async function loadFolder(){
     alert(entries.length+' ders/konu yüklendi.');
   }catch(e){console.error(e);alert('Klasör yüklenemedi: '+e.message);}
 }
-
+​
 function startQuiz(topic){
   const mastered=getMastered();
   let pool=[],topicName='';
@@ -210,6 +214,7 @@ function initAudioUnlock(){
   document.addEventListener('click',unlock,{once:true});document.addEventListener('touchstart',unlock,{once:true});
 }
 function playCorrectVideo(){
+  if(getSettings().correctVideo==='off')return;
   const vid=document.getElementById('correctVideo');if(!vid)return;
   vid.classList.remove('playing');vid.currentTime=0;vid.muted=false;vid.volume=1;
   const playAndAnimate=()=>{
@@ -269,15 +274,16 @@ function loadTopicScript(filename){
     document.head.appendChild(script);
   });
 }
-
+​
 async function autoLoadTopics(){
   for(let i=1;i<=20;i++)await loadTopicScript(i+'.js');
   initStart();
 }
-
+​
 loadSettings();
 initAudioUnlock();
 autoLoadTopics();
 </script>
 </body>
 </html>
+​
