@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BKS Ders Çalışma Botu</title>
+<style>
+:root{--bg:#1a1a2e;--card:#16213e;--text:#e8e8e8;--muted:#a0a0a0;--primary:#4a90e2;--primary-hover:#357abd;--secondary:#2d3a5c;--secondary-hover:#3d4d75;--danger:#c0392b;--danger-hover:#a93226;--correct:#27ae60;--wrong:#c0392b;--border:#2d3a5c}
+html[data-theme="light"]{--bg:#f5f7fa;--card:#ffffff;--text:#1a1a2e;--muted:#555;--border:#ddd;--secondary:#e1e5eb;--secondary-hover:#d0d4db}
+body{font-family:Calibri,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:0;transition:background .2s,color .2s}
+#app{max-width:800px;margin:0 auto;padding:20px;position:relative}
+#settingsBtn{position:absolute;top:12px;right:12px;background:transparent;border:2px solid var(--border);border-radius:4px;font-size:22px;cursor:pointer;color:var(--text);z-index:10;padding:6px 8px;line-height:1}
+#settingsPanel{display:none;position:absolute;top:50px;right:12px;width:300px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,.3);z-index:20;color:var(--text)}
+#settingsPanel.show{display:block}
+#settingsPanel h3{margin-top:0;color:var(--text)}
+#settingsPanel label{display:block;margin:8px 0;font-size:14px;cursor:pointer}
+#settingsPanel input[type=radio]{margin-right:8px}
+#settingsPanel .close{position:absolute;top:8px;right:12px;cursor:pointer;font-size:18px;color:var(--muted)}
+#start,#quiz,#result{position:relative;background:var(--card);border-radius:12px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,.3);border:1px solid var(--border);transition:background .2s}
+h1{margin-top:0;color:var(--text)}
+#courseButtons{max-height:70vh;overflow-y:auto}
+.topic-item{display:flex;align-items:center;padding:12px;margin:8px 0;background:var(--secondary);border-radius:8px;cursor:pointer;transition:background .2s,border .2s;border:2px solid transparent}
+.topic-item:hover{background:var(--secondary-hover)}
+.topic-item.selected{background:var(--primary);border-color:#fff}
+.topic-item input[type=checkbox]{margin-right:12px;transform:scale(1.2);cursor:pointer;flex-shrink:0}
+.topic-item label{cursor:pointer;flex:1;font-size:16px;color:#fff}
+.btn{display:block;width:100%;padding:15px;margin:10px 0;border:none;border-radius:8px;font-size:16px;cursor:pointer;color:white;transition:background .2s,opacity .2s;user-select:none}
+.btn-primary{background:var(--primary)}.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:var(--secondary);color:var(--text)}.btn-secondary:hover{background:var(--secondary-hover)}
+.btn-danger{background:var(--danger)}.btn-danger:hover{background:var(--danger-hover)}
+.btn-option{background:var(--secondary);color:var(--text);text-align:left;position:relative}.btn-option:hover{background:var(--secondary-hover)}
+.btn-option.eliminated{opacity:.25;text-decoration:line-through;background:var(--bg);color:var(--muted)}
+.correct{background:var(--correct)!important;color:white!important;opacity:1!important;text-decoration:none!important}
+.wrong{background:var(--wrong)!important;color:white!important;opacity:1!important;text-decoration:none!important}
+#question{font-size:20px;margin-bottom:20px;line-height:1.5}
+#course,#progress{font-size:14px;color:var(--muted);margin-bottom:10px}
+#feedback{margin-top:20px;font-weight:bold;padding:12px;border-radius:8px}
+#correctVideo{position:fixed;top:50%;left:50%;width:80vw;max-width:600px;transform:translate(-50%,-50%);z-index:100;opacity:0;pointer-events:none;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.5);transition:opacity .1s}
+#correctVideo.playing{animation:videoCelebration 9s cubic-bezier(0.25,0.1,0.25,1) forwards}
+@keyframes videoCelebration{0%{opacity:1;top:50%;left:50%;width:80vw;max-width:600px;transform:translate(-50%,-50%) rotate(0deg) scale(1)}65%{opacity:1;top:50%;left:50%;width:80vw;max-width:600px;transform:translate(-50%,-50%) rotate(0deg) scale(1)}80%{opacity:1;top:25%;left:78%;width:260px;transform:translate(-50%,-50%) rotate(180deg) scale(0.75)}100%{opacity:0;top:12px;left:calc(100% - 162px);width:150px;transform:translate(0,0) rotate(360deg) scale(0.5)}}
+.hidden{display:none}.small-text{font-size:14px;color:var(--muted);margin-top:15px}.hint{font-size:13px;color:var(--muted);margin-top:5px}
+hr{border:0;border-top:1px solid var(--border);margin:20px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="start">
+    <button id="settingsBtn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
+    <div id="settingsPanel">
+      <span class="close" onclick="closeSettings()">&times;</span>
+      <h3>Ayarlar</h3>
+      <div><strong>Tema</strong></div>
+      <label><input type="radio" name="theme" value="dark"> Koyu</label>
+      <label><input type="radio" name="theme" value="light"> Açık</label>
+      <hr>
+      <div><strong>Soruyu kaldır</strong></div>
+      <label><input type="radio" name="threshold" value="1"> 1 doğru cevap</label>
+      <label><input type="radio" name="threshold" value="1fast"> 5 saniye içinde 1 doğru</label>
+      <label><input type="radio" name="threshold" value="2"> 2 doğru cevap</label>
+      <label><input type="radio" name="threshold" value="3"> 3 doğru cevap</label>
+      <hr>
+      <button class="btn btn-primary" onclick="applySettings()" style="margin-top:10px">Uygula</button>
+      <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top:5px">İptal</button>
+    </div>
+    <h1>BKS Ders Çalışma Botu</h1>
+    <p>Dersleri yüklemek için "Klasörden Dersleri Yükle"ye tıklayın. Sağ yukarıdaki ayar düğmesine bağlı olarak doğru cevaplanan sorular listeden kaldırılır.</p>
+    <div id="courseButtons"></div>
+    <hr>
+    <button class="btn btn-secondary" onclick="loadFolder()" style="margin-bottom:10px">Klasörden Dersleri Yükle</button>
+    <button class="btn btn-danger" onclick="resetMastered()">Öğrenilen Soruları Sıfırla</button>
+    <div id="masteredInfo" class="small-text"></div>
+  </div>
+  <div id="quiz" class="hidden">
+    <div id="progress"></div>
+    <div id="course"></div>
+    <div id="question"></div>
+    <div id="options"></div>
+    <div class="hint">Cevap vermek için sol tık, şıkkı elemek için sağ tık.</div>
+    <div id="feedback" class="hidden"></div>
+    <button id="nextBtn" class="btn btn-primary hidden" onclick="nextQuestion()">Sonraki</button>
+    <button class="btn btn-secondary" onclick="goHome()" style="margin-top:15px">Ana Sayfa</button>
+  </div>
+  <video id="correctVideo" src="correct.mp4" muted playsinline preload="auto"></video>
+  <div id="result" class="hidden">
+    <h1>Seans Tamamlandı</h1>
+    <div id="finalScore"></div>
+    <button class="btn btn-primary" onclick="location.reload()">Tekrar Oyna</button>
+    <button class="btn btn-secondary" onclick="goHome()">Ana Sayfa</button>
+  </div>
+</div>
+<script>
+const LS_KEY='bks_mastered',LS_SET='bks_settings';
+let topics=[],activeQuestions=[],currentIndex=0,score=0,answered=false,selectedTopic='',currentStreak={},questionStart=0,currentCorrectLetter='';
+
+function registerTopic(name,questions){topics.push({name,questions});}
+function getMastered(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];}}
+function setMastered(ids){localStorage.setItem(LS_KEY,JSON.stringify(ids));}
+function resetMastered(){localStorage.removeItem(LS_KEY);updateMasteredInfo();alert('Öğrenilen sorular sıfırlandı.');}
+function updateMasteredInfo(){const m=getMastered();document.getElementById('masteredInfo').textContent='Öğrenilen (gizlenen): '+m.length+' soru';}
+function getSettings(){try{return JSON.parse(localStorage.getItem(LS_SET))||{theme:'dark',threshold:'2'};}catch(e){return {theme:'dark',threshold:'2'};}}
+function applyTheme(theme){document.documentElement.setAttribute('data-theme',theme);}
+function loadSettings(){const s=getSettings();document.querySelector('input[name="theme"][value="'+s.theme+'"]').checked=true;document.querySelector('input[name="threshold"][value="'+s.threshold+'"]').checked=true;applyTheme(s.theme);}
+function applySettings(){const theme=document.querySelector('input[name="theme"]:checked').value;const threshold=document.querySelector('input[name="threshold"]:checked').value;localStorage.setItem(LS_SET,JSON.stringify({theme,threshold}));applyTheme(theme);closeSettings();updateMasteredInfo();}
+function toggleSettings(){document.getElementById('settingsPanel').classList.toggle('show');}
+function closeSettings(){document.getElementById('settingsPanel').classList.remove('show');}
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function shuffleOptions(options){
+  const arr=[];
+  const letters=['A','B','C','D','E'];
+  if(Array.isArray(options)){
+    options.forEach((opt,idx)=>{if(opt)arr.push({letter:letters[idx],text:opt});});
+  }else{
+    letters.forEach(letter=>{const text=options[letter];if(text)arr.push({letter,text});});
+  }
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+
+function toggleTopicSelection(div,checked){if(checked)div.classList.add('selected');else div.classList.remove('selected');}
+function selectAllTopics(){document.querySelectorAll('.topic-item input').forEach(cb=>{cb.checked=true;toggleTopicSelection(cb.parentElement,true);});}
+function clearTopicSelection(){document.querySelectorAll('.topic-item input').forEach(cb=>{cb.checked=false;toggleTopicSelection(cb.parentElement,false);});}
+function getSelectedTopicIndices(){const selected=[];document.querySelectorAll('.topic-item input:checked').forEach(cb=>selected.push(parseInt(cb.dataset.index)));return selected;}
+function startSelectedQuiz(){const selected=getSelectedTopicIndices();if(selected.length===0){alert('Lütfen en az bir konu seçin.');return;}startQuiz(selected);}
+function initStart(){
+  updateMasteredInfo();
+  const container=document.getElementById('courseButtons');container.innerHTML='';
+  if(topics.length===0)return;
+  const helperDiv=document.createElement('div');helperDiv.style.cssText='display:flex;gap:10px;margin-bottom:10px;';
+  const selectAllBtn=document.createElement('button');selectAllBtn.className='btn btn-secondary';selectAllBtn.style.flex='1';selectAllBtn.style.margin='0';selectAllBtn.textContent='Tümünü Seç';selectAllBtn.onclick=selectAllTopics;
+  const clearBtn=document.createElement('button');clearBtn.className='btn btn-secondary';clearBtn.style.flex='1';clearBtn.style.margin='0';clearBtn.textContent='Seçimi Temizle';clearBtn.onclick=clearTopicSelection;
+  helperDiv.appendChild(selectAllBtn);helperDiv.appendChild(clearBtn);container.appendChild(helperDiv);
+  topics.forEach((t,idx)=>{
+    const div=document.createElement('div');div.className='topic-item';div.dataset.index=idx;
+    div.onclick=(e)=>{if(e.target.tagName!=='INPUT'){const cb=div.querySelector('input');cb.checked=!cb.checked;toggleTopicSelection(div,cb.checked);}};
+    const cb=document.createElement('input');cb.type='checkbox';cb.id='topic-'+idx;cb.dataset.index=idx;cb.onchange=()=>toggleTopicSelection(div,cb.checked);
+    const label=document.createElement('label');label.htmlFor='topic-'+idx;label.textContent=t.name;
+    div.appendChild(cb);div.appendChild(label);container.appendChild(div);
+  });
+  const studyBtn=document.createElement('button');studyBtn.className='btn btn-primary';studyBtn.textContent='Seçili Konuları Çalış';studyBtn.onclick=startSelectedQuiz;container.appendChild(studyBtn);
+  const allBtn=document.createElement('button');allBtn.className='btn btn-secondary';allBtn.textContent='Tüm Dersler/Konular';allBtn.onclick=()=>startQuiz('all');container.appendChild(allBtn);
+}
+
+async function loadFolder(){
+  if(!window.showDirectoryPicker){alert('Tarayıcınız klasör seçmeyi desteklemiyor. Lütfen Chrome/Edge kullanın.');return;}
+  try{
+    const dirHandle=await window.showDirectoryPicker();
+    topics=[];
+    const entries=[];
+    for await(const entry of dirHandle.values()){if(entry.kind==='file'&&entry.name.endsWith('.js'))entries.push(entry);}
+    entries.sort((a,b)=>a.name.localeCompare(b.name));
+    for(const entry of entries){
+      const f=await entry.getFile();
+      const text=await f.text();
+      const topicName=entry.name.replace(/\.js$/,'');
+      try{
+        const runner=new Function('registerTopic','topicName','window',text+'\nif(typeof allQuestions!=="undefined"&&allQuestions.length>0){registerTopic(topicName,allQuestions);}');
+        runner(registerTopic,topicName,window);
+      }catch(err){console.error('Dosya yüklenemedi:',entry.name,err);}
+    }
+    initStart();
+    alert(entries.length+' ders/konu yüklendi.');
+  }catch(e){console.error(e);alert('Klasör yüklenemedi: '+e.message);}
+}
+
+function startQuiz(topic){
+  const mastered=getMastered();
+  let pool=[],topicName='';
+  if(topic==='all'){topics.forEach(t=>pool=pool.concat(t.questions));topicName='Tüm Dersler/Konular';}
+  else if(Array.isArray(topic)){topic.forEach(idx=>pool=pool.concat(topics[idx].questions));topicName=topic.map(idx=>topics[idx].name).join(' + ');}
+  else{pool=topics[topic].questions.slice();topicName=topics[topic].name;}
+  pool=pool.filter(q=>!mastered.includes(q.id));
+  activeQuestions=shuffle(pool);
+  if(activeQuestions.length===0){alert('Seçili konularda çalışılacak soru kalmamış. Sıfırla butonu ile getirebilirsiniz.');return;}
+  selectedTopic=topicName;
+  currentIndex=0;score=0;currentStreak={};
+  document.getElementById('start').classList.add('hidden');
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  showQuestion();
+}
+function showQuestion(){
+  answered=false;questionStart=Date.now();
+  const q=activeQuestions[currentIndex];
+  document.getElementById('progress').textContent='Soru '+(currentIndex+1)+' / '+activeQuestions.length;
+  document.getElementById('course').textContent='Konu: '+selectedTopic;
+  document.getElementById('question').textContent=q.question;
+  const optsDiv=document.getElementById('options');optsDiv.innerHTML='';
+  const shuffled=shuffleOptions(q.options);
+  const letters=['A','B','C','D','E'];
+  shuffled.forEach((item,idx)=>{
+    const displayLetter=letters[idx];
+    if(item.letter===q.correct)currentCorrectLetter=displayLetter;
+    const btn=document.createElement('button');btn.className='btn btn-option';
+    btn.textContent=displayLetter+') '+item.text;btn.dataset.letter=displayLetter;
+    btn.onclick=(e)=>{e.preventDefault();answer(displayLetter,btn);};
+    btn.oncontextmenu=(e)=>{e.preventDefault();btn.classList.toggle('eliminated');return false;};
+    optsDiv.appendChild(btn);
+  });
+  document.getElementById('feedback').classList.add('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+}
+function initAudioUnlock(){
+  const unlock=()=>{
+    const vid=document.getElementById('correctVideo');if(vid){vid.muted=false;}
+    const a=new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==');
+    a.play().catch(()=>{});
+    document.removeEventListener('click',unlock);document.removeEventListener('touchstart',unlock);
+  };
+  document.addEventListener('click',unlock,{once:true});document.addEventListener('touchstart',unlock,{once:true});
+}
+function playCorrectVideo(){
+  const vid=document.getElementById('correctVideo');if(!vid)return;
+  vid.classList.remove('playing');vid.currentTime=0;vid.muted=false;vid.volume=1;
+  const playAndAnimate=()=>{
+    vid.play().then(()=>{void vid.offsetWidth;vid.classList.add('playing');}).catch(err=>{
+      console.log('Unmuted play blocked:',err);
+      vid.muted=true;vid.play().then(()=>{void vid.offsetWidth;vid.classList.add('playing');}).catch(e=>console.log('Muted play also failed:',e));
+    });
+  };
+  if(vid.readyState>=3){playAndAnimate();}
+  else{vid.addEventListener('canplaythrough',playAndAnimate,{once:true});vid.load();}
+  setTimeout(()=>{vid.classList.remove('playing');vid.pause();},9000);
+}
+function answer(letter,btn){
+  if(answered)return;answered=true;
+  const q=activeQuestions[currentIndex],correct=currentCorrectLetter,elapsed=(Date.now()-questionStart)/1000;
+  const settings=getSettings();const feedback=document.getElementById('feedback');
+  feedback.classList.remove('hidden');
+  if(letter===correct){
+    score+=100;feedback.textContent='Doğru! +100 puan';feedback.style.color='#27ae60';if(btn)btn.classList.add('correct');playCorrectVideo();
+    currentStreak[q.id]=(currentStreak[q.id]||0)+1;
+    let mastered=false;
+    if(settings.threshold==='1')mastered=true;
+    else if(settings.threshold==='1fast'&&elapsed<=5)mastered=true;
+    else if(settings.threshold==='2'&&currentStreak[q.id]>=2)mastered=true;
+    else if(settings.threshold==='3'&&currentStreak[q.id]>=3)mastered=true;
+    if(mastered){
+      const m=getMastered();if(!m.includes(q.id)){m.push(q.id);setMastered(m);}
+      feedback.textContent+=' (listeden kaldırıldı)';
+    }
+  }else{
+    feedback.textContent='Yanlış. Doğru cevap: '+currentCorrectLetter+') '+q.answer_text;feedback.style.color='#c0392b';
+    if(btn)btn.classList.add('wrong');currentStreak[q.id]=0;
+    const buttons=document.querySelectorAll('.btn-option');
+    buttons.forEach(b=>{if(b.dataset.letter===currentCorrectLetter)b.classList.add('correct');});
+  }
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
+function nextQuestion(){currentIndex++;if(currentIndex>=activeQuestions.length)showResult();else showQuestion();}
+function showResult(){
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('result').classList.remove('hidden');
+  const m=getMastered();
+  document.getElementById('finalScore').innerHTML='<p>Toplam puan: '+score+'</p><p>Çalışılan soru: '+activeQuestions.length+'</p><p>Öğrenilen: '+m.length+' soru</p>';
+}
+function goHome(){
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('start').classList.remove('hidden');
+  updateMasteredInfo();
+}
+function loadTopicScript(filename){
+  return new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.src=filename;
+    script.onload=()=>resolve(true);
+    script.onerror=()=>{script.remove();resolve(false);};
+    document.head.appendChild(script);
+  });
+}
+
+async function autoLoadTopics(){
+  for(let i=1;i<=20;i++)await loadTopicScript(i+'.js');
+  initStart();
+}
+
+loadSettings();
+initAudioUnlock();
+autoLoadTopics();
+</script>
+</body>
+</html>
